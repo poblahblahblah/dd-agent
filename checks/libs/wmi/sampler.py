@@ -38,10 +38,9 @@ class WMISampler(object):
     A fast Python WMI module.
 
     Headlines:
-    * Built directly on top of the pywin32 extensions
+    * Built directly on top of the pywin32 extensions. Use of COM directly.
     * Compatible with Raw and Formatted Performance Data classes
         * Hold the previous/current sample taken from Raw Performance classes to compute new values.
-    *
 
     Original discussion thread: https://github.com/DataDog/dd-agent/issues/1952
     Credits to @TheCloudlessSky (https://github.com/TheCloudlessSky)
