@@ -1,6 +1,5 @@
 # stdlib\
 from functools import partial
-from itertools import count
 import logging
 import unittest
 
@@ -138,8 +137,8 @@ class TestUnitWMI(unittest.TestCase):
         # FIXME
         MockDispatch.reset()
 
-        from checks.libs import wmi
-        WMISampler = partial(wmi.WMISampler, log)
+        from checks.libs.wmi import sampler
+        WMISampler = partial(sampler.WMISampler, log)
 
     def assertWMIConnWith(self, wmi_sampler, param):
         """
