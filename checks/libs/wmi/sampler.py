@@ -50,19 +50,18 @@ class WMISampler(object):
         # Include required properties for making calculations with raw
         # performance counters:
         # https://msdn.microsoft.com/en-us/library/aa394299(v=vs.85).aspx
-        # FIXME
-        # if self.is_raw_perf_class:
-        #     property_names.extend([
-        #         "Timestamp_Sys100NS",
-        #         "Frequency_Sys100NS",
-        #         # IMPORTANT: To improve performance and since they're currently
-        #         # not needed, do not include the other Timestamp/Frequency
-        #         # properties:
-        #         #   - Timestamp_PerfTime
-        #         #   - Timestamp_Object
-        #         #   - Frequency_PerfTime
-        #         #   - Frequency_Object"
-        #     ])
+        if self.is_raw_perf_class:
+            property_names.extend([
+                "Timestamp_Sys100NS",
+                "Frequency_Sys100NS",
+                # IMPORTANT: To improve performance and since they're currently
+                # not needed, do not include the other Timestamp/Frequency
+                # properties:
+                #   - Timestamp_PerfTime
+                #   - Timestamp_Object
+                #   - Frequency_PerfTime
+                #   - Frequency_Object"
+            ])
         self.class_name = class_name
         self.property_names = property_names
         self.filters = filters
@@ -76,9 +75,9 @@ class WMISampler(object):
         """
         Compute new samples.
         """
-        # if self.is_raw_perf_class and not self.previous_sample:
-        #     self.logger.debug(u"Querying for initial sample for raw performance counter.")
-        #     self.current_sample = self._query(self.class_name, self.property_names)
+        if self.is_raw_perf_class and not self.previous_sample:
+            self.logger.debug(u"Querying for initial sample for raw performance counter.")
+            self.current_sample = self._query()
         self.previous_sample = self.current_sample
 
         self.current_sample = self._query()
