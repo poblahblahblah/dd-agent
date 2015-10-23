@@ -19,20 +19,6 @@ class CaseInsensitiveDict(dict):
         return super(CaseInsensitiveDict, self).get(key.lower())
 
 
-class InvalidWMIQuery(Exception):
-    """
-    Invalid WMI Query.
-    """
-    pass
-
-
-class MissingTagBy(Exception):
-    """
-    WMI query returned multiple rows but no `tag_by` value was given.
-    """
-    pass
-
-
 class WMISampler(object):
     """
     A fast Python WMI module.
@@ -48,7 +34,7 @@ class WMISampler(object):
     _wmi_locators = {}
     _wmi_connections = {}
 
-    def __init__(self, logger, class_name, property_names, host="localhost",
+    def __init__(self, logger, class_name, property_names, filters="", host="localhost",
                  namespace="root\\cimv2", username="", password=""):
         self.logger = logger
 
@@ -79,6 +65,7 @@ class WMISampler(object):
         #     ])
         self.class_name = class_name
         self.property_names = property_names
+        self.filters = filters
 
         # Samples
         self.current_sample = None
@@ -162,20 +149,32 @@ class WMISampler(object):
         return connection
 
     @staticmethod
-    def _raise_for_invalid(result, tag_by):
+    def _format_filter(filters):
         """
-        FIXME: Remove me ?
+        Transform filters to a comprehensive WQL `WHERE` clause.
+        """
+        def build_where_clause(fltr):
+            """
+            Recursively build `WHERE` clause.
+            """
+            f = fltr.pop()
+            prop, value = f.popitem()
 
-        Raise:
-        * `InvalidWMIQuery`: when the result returned by the WMI query is invalid
-        * `MissingTagBy`: when the result returned by tge WMI query contains multiple rows
-            but no `tag_by` value was given
-        """
-        try:
-            if len(result) > 1 and not tag_by:
-                raise MissingTagBy
-        except (pywintypes.com_error):
-            raise InvalidWMIQuery
+            if len(fltr) == 0:
+                return "{property} = '{constant}'".format(
+                    property=prop,
+                    constant=value
+                )
+            return "{property} = '{constant}' AND {more}".format(
+                property=prop,
+                constant=value,
+                more=build_where_clause(fltr)
+            )
+
+        if not filters:
+            return ""
+
+        return " WHERE {clause}".format(clause=build_where_clause(filters))
 
     def _query(self):
         """
@@ -184,9 +183,10 @@ class WMISampler(object):
         Returns: List of WMI objects
         """
         formated_property_names = ",".join(self.property_names)
-        wql = "Select {property_names} from {class_name}".format(
+        wql = "Select {property_names} from {class_name}{filters}".format(
             property_names=formated_property_names,
-            class_name=self.class_name
+            class_name=self.class_name,
+            filters=self._format_filter(self.filters),
         )
         self.logger.debug(u"Querying WMI: {0}".format(wql))
 

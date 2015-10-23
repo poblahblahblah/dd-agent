@@ -19,6 +19,7 @@ WMISampler = None
 # Log WMI activity
 # Mechanism to timeout
 # Check when pywintypes.com_error are raised
+# Check the role of the flags
 
 
 def load_fixture(f, args):
@@ -119,9 +120,9 @@ class MockDispatch(object):
     ConnectServer.call_count = _connect_call_count
 
 
-class TestUnitWMI(unittest.TestCase):
+class TestCommonWMI(unittest.TestCase):
     """
-    Unit tests for WMISampler.
+    Common toolbox for WMI unit testing.
     """
     def setUp(self):
         """
@@ -164,6 +165,11 @@ class TestUnitWMI(unittest.TestCase):
     def assertWMIObject(self, wmi_obj, property_names):
         pass
 
+
+class TestUnitWMI(TestCommonWMI):
+    """
+    Unit tests for WMISampler.
+    """
     def test_raw_perf_properties(self):
         """
         Extend the list of properties to query for RAW Performance classes.
@@ -183,10 +189,10 @@ class TestUnitWMI(unittest.TestCase):
         wmi_sampler = WMISampler(
             "Win32_PerfRawData_PerfOS_System",
             ["ProcessorQueueLength"],
-            "myhost",
-            "some/namespace",
-            "datadog",
-            "password"
+            host="myhost",
+            namespace="some/namespace",
+            username="datadog",
+            password="password"
         )
         wmi_conn = wmi_sampler._get_connection()
 
@@ -205,7 +211,7 @@ class TestUnitWMI(unittest.TestCase):
 
         wmi_sampler_1 = WMISampler("Win32_PerfRawData_PerfOS_System", ["ProcessorQueueLength"])
         wmi_sampler_2 = WMISampler("Win32_OperatingSystem", ["TotalVisibleMemorySize"])
-        wmi_sampler_3 = WMISampler("Win32_PerfRawData_PerfOS_System", ["ProcessorQueueLength"], "myhost")  # noqa
+        wmi_sampler_3 = WMISampler("Win32_PerfRawData_PerfOS_System", ["ProcessorQueueLength"], host="myhost")  # noqa
 
         wmi_sampler_1.sample()
         wmi_sampler_2.sample()
@@ -216,19 +222,60 @@ class TestUnitWMI(unittest.TestCase):
 
         self.assertEquals(Dispatch.ConnectServer.call_count, 2, Dispatch.ConnectServer.call_count)
 
+    def test_wql_filtering(self):
+        """
+        Format the filters to a comprehensive WQL `WHERE` clause.
+        """
+        from checks.libs.wmi import sampler
+        format_filter = sampler.WMISampler._format_filter
+
+        # Check `_format_filter` logic
+        no_filters = []
+        filters = [{'Name': "SomeName"}, {'Id': "SomeId"}]
+
+        self.assertEquals("", format_filter(no_filters))
+        self.assertEquals(" WHERE Id = 'SomeId' AND Name = 'SomeName'",
+                          format_filter(filters))
+
     def test_wmi_query(self):
         """
         Query WMI using WMI Query Language (WQL).
         """
+        # No filters
         wmi_sampler = WMISampler("Win32_PerfFormattedData_PerfDisk_LogicalDisk",
                                  ["AvgDiskBytesPerWrite", "FreeMegabytes"])
         wmi_sampler.sample()
 
-        # Assert the WMI query
         self.assertWMIQuery(
             wmi_sampler,
             "Select AvgDiskBytesPerWrite,FreeMegabytes"
             " from Win32_PerfFormattedData_PerfDisk_LogicalDisk"
+        )
+
+        # Single filter
+        wmi_sampler = WMISampler("Win32_PerfFormattedData_PerfDisk_LogicalDisk",
+                                 ["AvgDiskBytesPerWrite", "FreeMegabytes"],
+                                 filters=[{'Name': "C:"}])
+        wmi_sampler.sample()
+
+        self.assertWMIQuery(
+            wmi_sampler,
+            "Select AvgDiskBytesPerWrite,FreeMegabytes"
+            " from Win32_PerfFormattedData_PerfDisk_LogicalDisk"
+            " WHERE Name = 'C:'"
+        )
+
+        # Multiple filters
+        wmi_sampler = WMISampler("Win32_PerfFormattedData_PerfDisk_LogicalDisk",
+                                 ["AvgDiskBytesPerWrite", "FreeMegabytes"],
+                                 filters=[{'Name': "C:"}, {'Id': "123"}])
+        wmi_sampler.sample()
+
+        self.assertWMIQuery(
+            wmi_sampler,
+            "Select AvgDiskBytesPerWrite,FreeMegabytes"
+            " from Win32_PerfFormattedData_PerfDisk_LogicalDisk"
+            " WHERE Id = '123' AND Name = 'C:'"
         )
 
     def test_wmi_parser(self):
