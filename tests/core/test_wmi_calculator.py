@@ -2,7 +2,7 @@
 import unittest
 
 # datadog
-from checks.libs.wmi.counter_type import calculator, get_calculator, MissingCalculator
+from checks.libs.wmi.counter_type import calculator, get_calculator, UndefinedCalculator
 
 
 class TestWMICalculators(unittest.TestCase):
@@ -45,7 +45,7 @@ class TestWMICalculators(unittest.TestCase):
 
         self.assertTrue(get_calculator(123456))
 
-        self.assertRaises(MissingCalculator, get_calculator, 654321)
+        self.assertRaises(UndefinedCalculator, get_calculator, 654321)
 
     def test_calculator_values(self):
         """

@@ -21,7 +21,7 @@ From: https://msdn.microsoft.com/en-us/library/aa389383(v=vs.85).aspx
 _counter_type_calculators = {}
 
 
-class MissingCalculator(Exception):
+class UndefinedCalculator(Exception):
     """
     No calculator is defined for the given CounterType.
     """
@@ -42,12 +42,12 @@ def get_calculator(counter_type):
     """
     Return the calculator associated with the counter_type when it exists.
 
-    Raise a MissingCalculator exception otherwise.
+    Raise a UndefinedCalculator exception otherwise.
     """
     try:
         return _counter_type_calculators[counter_type]
     except KeyError:
-        raise MissingCalculator
+        raise UndefinedCalculator
 
 
 @calculator(65536)

@@ -1,8 +1,12 @@
 # stdlib
 import pywintypes
+from itertools import izip
+
+# 3p
 from win32com.client import Dispatch
 
 # project
+from checks.libs.wmi.counter_type import get_calculator, UndefinedCalculator
 
 
 class CaseInsensitiveDict(dict):
@@ -92,10 +96,17 @@ class WMISampler(object):
 
     def __iter__(self):
         """
-        Iterate on the current sample's WMI Objects.
+        Iterate on the current sample's WMI Objects and format the property values.
         """
-        for wmi_obj in self.current_sample:
-            yield wmi_obj
+        if self.is_raw_perf_class:
+            # Format required
+            for current_wmi_object, previous_wmi_object in \
+                    izip(self.previous_sample, self.current_sample):
+                yield current_wmi_object
+        else:
+            #  No format required
+            for wmi_object in self.current_sample:
+                yield wmi_object
 
     def __eq__(self, other):
         """
@@ -108,6 +119,19 @@ class WMISampler(object):
         Stringify the current sample's WMI Objects.
         """
         return str(self.current_sample)
+
+    def _format_property_values(self, previous, current):
+        """
+        Format WMI Object's RAW data based on the previous sample.
+
+        Do not override the original WMI Object !
+        """
+        formatted_wmi_object = {}
+
+        for property_name, property_raw_value in current.iteritems():
+            pass
+
+        return formatted_wmi_object
 
     def _get_connection(self):
         """
