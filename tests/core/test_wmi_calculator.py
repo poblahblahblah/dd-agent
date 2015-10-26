@@ -33,7 +33,7 @@ class TestWMICalculators(unittest.TestCase):
 
     def test_calculator_decorator(self):
         """
-        Asssign a calculator to a counter_type.
+        Asssign a calculator to a counter_type. Raise when the calculator is missing.
         """
         @calculator(123456)
         def do_something():

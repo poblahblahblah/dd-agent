@@ -32,11 +32,11 @@ def load_fixture(f, args):
     data = Fixtures.read_file(f)
     for l in data.splitlines():
         property_name, property_value = l.split(" ")
-        properties.append(Mock(Name=property_name, Value=property_value))
+        properties.append(Mock(Name=property_name, Value=property_value, Qualifiers_=[]))
 
     # Append extra information
     property_name, property_value = args
-    properties.append(Mock(Name=property_name, Value=property_value))
+    properties.append(Mock(Name=property_name, Value=property_value, Qualifiers_=[]))
 
     return [Mock(Properties_=properties)]
 
@@ -70,6 +70,7 @@ class SWbemServices(object):
         super(SWbemServices, self).__init__()
         self._wmi_conn_args = wmi_conn_args
         self._last_wmi_query = None
+        self._last_wmi_flags = None
 
     @classmethod
     def reset(cls):
@@ -86,24 +87,31 @@ class SWbemServices(object):
 
     def get_last_wmi_query(self):
         """
-        Return the last WMI query submitted via the WMI connection,
+        Return the last WMI query submitted via the WMI connection.
         """
         return self._last_wmi_query
 
-    def ExecQuery(self, wql, *args, **kwargs):
+    def get_last_wmi_flags(self):
+        """
+        Return the last WMI flags submitted via the WMI connection.
+        """
+        return self._last_wmi_flags
+
+    def ExecQuery(self, query, query_language, flags):
         SWbemServices._exec_query_call_count += 1
-        self._last_wmi_query = wql
+        self._last_wmi_query = query
+        self._last_wmi_flags = flags
         results = []
-        if wql == "Select AvgDiskBytesPerWrite,FreeMegabytes "\
+        if query == "Select AvgDiskBytesPerWrite,FreeMegabytes "\
                 "from Win32_PerfFormattedData_PerfDisk_LogicalDisk":
             results += load_fixture("win32_perfformatteddata_perfdisk_logicaldisk", ("Name", "C:"))
             results += load_fixture("win32_perfformatteddata_perfdisk_logicaldisk", ("Name", "D:"))
 
         # FIXME with a real example
-        if wql == "Select ProcessorQueueLength,Timestamp_Sys100NS,Frequency_Sys100NS "\
+        if query == "Select ProcessorQueueLength,Timestamp_Sys100NS,Frequency_Sys100NS "\
                 "from Win32_PerfRawData_PerfOS_System":
-            results += load_fixture("win32_perfformatteddata_perfdisk_logicaldisk", ("Name", "C:"))
-            results += load_fixture("win32_perfformatteddata_perfdisk_logicaldisk", ("Name", "D:"))
+            results += load_fixture("win32_perfrawdata_perfos_system", ("Name", "C:"))
+            results += load_fixture("win32_perfrawdata_perfos_system", ("Name", "D:"))
 
         return results
 
@@ -159,11 +167,11 @@ class TestCommonWMI(unittest.TestCase):
         """
         Reset Mock counters, flush samplers and connections
         """
-        # Counters
-        from win32com.client import Dispatch
+        # Reset counters
         Dispatch.reset()
+        SWbemServices.reset()
 
-        # Flush
+        # Flush cache
         from checks.libs.wmi.sampler import WMISampler
         WMISampler._wmi_locators = {}
         WMISampler._wmi_connections = {}
@@ -181,13 +189,19 @@ class TestCommonWMI(unittest.TestCase):
         else:
             self.assertIn(param, wmi_conn_args)
 
-    def assertWMIQuery(self, wmi_sampler, wmi_query):
+    def assertWMIQuery(self, wmi_sampler, query=None, flags=None):
         """
-        Helper, assert that the given WMI query was submitted.
+        Helper, assert that the given WMI query and flags were submitted.
         """
         wmi_instance = wmi_sampler._get_connection()
-        last_wmi_query = wmi_instance.get_last_wmi_query()
-        self.assertEquals(last_wmi_query, wmi_query)
+
+        if query:
+            last_wmi_query = wmi_instance.get_last_wmi_query()
+            self.assertEquals(last_wmi_query, query)
+
+        if flags:
+            last_wmi_flags = wmi_instance.get_last_wmi_flags()
+            self.assertEquals(last_wmi_flags, flags)
 
     def assertWMIObject(self, wmi_obj, property_names):
         """
@@ -358,6 +372,25 @@ class TestUnitWMISampler(TestCommonWMI):
         # Repeat
         wmi_sampler.sample()
         self.assertEquals(SWbemServices.ExecQuery.call_count, 3, SWbemServices.ExecQuery.call_count)
+
+    def test_raw_cache_qualifiers(self):
+        """
+        Cache the qualifiers on the first query against RAW Performance classes.
+        """
+        # Append `flag_use_amended_qualifiers` flag on the first query
+        wmi_raw_sampler = WMISampler("Win32_PerfRawData_PerfOS_System", ["ProcessorQueueLength"])
+        wmi_raw_sampler._query()
+
+        self.assertWMIQuery(wmi_raw_sampler, flags=131120)
+
+        wmi_raw_sampler._query()
+        self.assertWMIQuery(wmi_raw_sampler, flags=48)
+
+    def function():
+        """
+        Print a warning on RAW Performance classes if the calculator is undefined.
+        """
+        pass
 
 
 class TestIntegrationWMI(unittest.TestCase):

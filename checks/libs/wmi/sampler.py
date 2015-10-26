@@ -46,7 +46,7 @@ class WMISampler(object):
 
         self.is_raw_perf_class = "_PERFRAWDATA_" in class_name.upper()
 
-        # WMI class and properties
+        # WMI class, properties, filters and counter types
         # Include required properties for making calculations with raw
         # performance counters:
         # https://msdn.microsoft.com/en-us/library/aa394299(v=vs.85).aspx
@@ -65,11 +65,11 @@ class WMISampler(object):
         self.class_name = class_name
         self.property_names = property_names
         self.filters = filters
+        self.property_counter_types = None
 
         # Samples
         self.current_sample = None
         self.previous_sample = None
-        self.property_counter_types = None
 
     def sample(self):
         """
@@ -199,13 +199,13 @@ class WMISampler(object):
 
             # For the first query, cache the qualifiers to determine each
             # propertie's "CounterType"
-            # FIXME
-            # if self.property_counter_types is None:
-            #     self.property_counter_types = CaseInsensitiveDict()
-            #     query_flags |= flag_use_amended_qualifiers
+            includes_qualifiers = self.property_counter_types is None
+            if includes_qualifiers:
+                self.property_counter_types = CaseInsensitiveDict()
+                query_flags |= flag_use_amended_qualifiers
 
             raw_results = self._get_connection().ExecQuery(wql, "WQL", query_flags)
-            results = self._parse_results(raw_results, includes_qualifiers=False)
+            results = self._parse_results(raw_results, includes_qualifiers=includes_qualifiers)
 
         except pywintypes.com_error as ex:
             self.logger.warning(u"Failed to execute WMI query (%s)", wql, exc_info=True)
@@ -243,34 +243,41 @@ class WMISampler(object):
             for wmi_property in res.Properties_:
                 # IMPORTANT: To improve performance, only access the Qualifiers
                 # if the "CounterType" hasn't already been cached.
-                # should_get_qualifier_type = (
-                #     includes_qualifiers and
-                #     wmi_property.Name not in self.property_counter_types
-                # )
+                should_get_qualifier_type = (
+                    includes_qualifiers and
+                    wmi_property.Name not in self.property_counter_types
+                )
 
-                # if should_get_qualifier_type:
+                if should_get_qualifier_type:
 
-                #     # Can't index into "Qualifiers_" for keys that don't exist
-                #     # without getting an exception.
-                #     qualifiers = {q.Name: q.Value for q in wmi_property.Qualifiers_}
+                    # Can't index into "Qualifiers_" for keys that don't exist
+                    # without getting an exception.
+                    qualifiers = {q.Name: q.Value for q in wmi_property.Qualifiers_}
 
-                #     # Some properties like "Name" and "Timestamp_Sys100NS" do
-                #     # not have a "CounterType" (since they're not a counter).
-                #     # Therefore, they're ignored.
-                #     if "CounterType" in qualifiers:
-                #         counter_type = qualifiers["CounterType"]
-                #         self.property_counter_types[wmi_property.Name] = counter_type
+                    # Some properties like "Name" and "Timestamp_Sys100NS" do
+                    # not have a "CounterType" (since they're not a counter).
+                    # Therefore, they're ignored.
+                    if "CounterType" in qualifiers:
+                        counter_type = qualifiers["CounterType"]
+                        self.property_counter_types[wmi_property.Name] = counter_type
 
-                #         self.logger.debug(u"Caching property qualifier CounterType: %s.%s = %s",
-                #             self.class_name,
-                #             wmi_property.Name,
-                #             counter_type
-                #         )
-                #     else:
-                #         self.logger.debug(u"CounterType qualifier not found for %s.%s",
-                #             self.class_name,
-                #             wmi_property.Name
-                #         )
+                        self.logger.debug(
+                            u"Caching property qualifier CounterType: "
+                            "{class_name}.{property_names} = {counter_type}"
+                            .format(
+                                class_name=self.class_name,
+                                property_names=wmi_property.Name,
+                                counter_type=counter_type,
+                            )
+                        )
+                    else:
+                        self.logger.debug(
+                            u"CounterType qualifier not found for {class_name}.{property_names}"
+                            .format(
+                                class_name=self.class_name,
+                                property_names=wmi_property.Name,
+                            )
+                        )
 
                 try:
                     item[wmi_property.Name] = float(wmi_property.Value)
