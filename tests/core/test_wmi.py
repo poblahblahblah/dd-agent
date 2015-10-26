@@ -28,11 +28,31 @@ def load_fixture(f, args):
     """
     properties = []
 
+    def extract_line(line):
+        """
+        Extract a property name, value and the qualifiers from a fixture line.
+
+        Return (property name, property value, property qualifiers)
+        """
+        property_counter_type = ""
+
+        try:
+            property_name, property_value, property_counter_type = line.split(" ")
+        except ValueError:
+            property_name, property_value = line.split(" ")
+
+        property_qualifiers = [Mock(Name='CounterType', Value=int(property_counter_type))] \
+            if property_counter_type else []
+
+        return property_name, property_value, property_qualifiers
+
     # Build from file
     data = Fixtures.read_file(f)
     for l in data.splitlines():
-        property_name, property_value = l.split(" ")
-        properties.append(Mock(Name=property_name, Value=property_value, Qualifiers_=[]))
+        property_name, property_value, property_qualifiers = extract_line(l)
+        properties.append(
+            Mock(Name=property_name, Value=property_value, Qualifiers_=property_qualifiers)
+        )
 
     # Append extra information
     property_name, property_value = args
@@ -385,6 +405,11 @@ class TestUnitWMISampler(TestCommonWMI):
 
         wmi_raw_sampler._query()
         self.assertWMIQuery(wmi_raw_sampler, flags=48)
+
+        # Qualifiers are cached
+        self.assertTrue(wmi_raw_sampler.property_counter_types)
+        self.assertIn('CounterRawCount', wmi_raw_sampler.property_counter_types)
+        self.assertIn('CounterCounter', wmi_raw_sampler.property_counter_types)
 
     def function():
         """
