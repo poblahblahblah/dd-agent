@@ -359,9 +359,9 @@ class TestUnitWMISampler(TestCommonWMI):
 
         self.assertEquals(wmi_sampler, expected_results, wmi_sampler)
 
-    def test_wmi_sampler_iterator(self):
+    def test_wmi_sampler_iterator_getter(self):
         """
-        Iterate on the WMISampler object iterates on its current sample.
+        Iterate/Get on the WMISampler object iterates/gets on its current sample.
         """
         wmi_sampler = WMISampler("Win32_PerfFormattedData_PerfDisk_LogicalDisk",
                                  ["AvgDiskBytesPerWrite", "FreeMegabytes"])
@@ -369,8 +369,13 @@ class TestUnitWMISampler(TestCommonWMI):
 
         self.assertEquals(len(wmi_sampler), 2)
 
+        # Using an iterator
         for wmi_obj in wmi_sampler:
             self.assertWMIObject(wmi_obj, ["AvgDiskBytesPerWrite", "FreeMegabytes", "name"])
+
+        # Using an accessor
+        for index in xrange(0, 2):
+            self.assertWMIObject(wmi_sampler[index], ["AvgDiskBytesPerWrite", "FreeMegabytes", "name"])
 
     def test_raw_perf_properties(self):
         """
@@ -425,10 +430,17 @@ class TestUnitWMISampler(TestCommonWMI):
 
         self.assertEquals(len(wmi_raw_sampler), 2)
 
+        # Using an iterator
         for wmi_obj in wmi_raw_sampler:
             self.assertWMIObject(wmi_obj, ["CounterRawCount", "CounterCounter", "Timestamp_Sys100NS", "Frequency_Sys100NS", "name"])  # noqa
             self.assertEquals(wmi_obj['CounterRawCount'], 500)
             self.assertEquals(wmi_obj['CounterCounter'], 50)
+
+        # Using an accessor
+        for index in xrange(0, 2):
+            self.assertWMIObject(wmi_raw_sampler[index], ["CounterRawCount", "CounterCounter", "Timestamp_Sys100NS", "Frequency_Sys100NS", "name"])  # noqa
+            self.assertEquals(wmi_raw_sampler[index]['CounterRawCount'], 500)
+            self.assertEquals(wmi_raw_sampler[index]['CounterCounter'], 50)
 
     def test_raw_properties_fallback(self):
         """
@@ -446,9 +458,6 @@ class TestUnitWMISampler(TestCommonWMI):
         for wmi_obj in wmi_raw_sampler:
             self.assertWMIObject(wmi_obj, ["UnknownCounter", "Timestamp_Sys100NS", "Frequency_Sys100NS", "name"])  # noqa
             self.assertEquals(wmi_obj['UnknownCounter'], 999)
-
-            # Access a non existent property
-            self.assertFalse(wmi_obj['MissingProperty'])
 
         self.assertTrue(logger.warning.called)
 

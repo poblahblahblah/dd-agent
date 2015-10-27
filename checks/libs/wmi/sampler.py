@@ -112,6 +112,21 @@ class WMISampler(object):
             for wmi_object in self.current_sample:
                 yield wmi_object
 
+    def __getitem__(self, index):
+        """
+        Get the specified formatted WMI Object from the current sample.
+        """
+        if self.is_raw_perf_class:
+            previous_wmi_object = self.previous_sample[index]
+            current_wmi_object = self.current_sample[index]
+            formatted_wmi_object = self._format_property_values(
+                previous_wmi_object,
+                current_wmi_object
+            )
+            return formatted_wmi_object
+        else:
+            return self.current_sample[index]
+
     def __eq__(self, other):
         """
         Equality operator is based on the current sample.
