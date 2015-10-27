@@ -50,6 +50,16 @@ def get_calculator(counter_type):
         raise UndefinedCalculator
 
 
+def get_raw(previous, current, property_name):
+    """
+    Returns the vanilla RAW property value.
+
+    Not associated with any counter_type: used to fallback when no calculator
+    is defined for a given counter_type.
+    """
+    return current[property_name]
+
+
 @calculator(65536)
 def calculate_perf_counter_rawcount(previous, current, property_name):
     """

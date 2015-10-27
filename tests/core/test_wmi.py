@@ -4,7 +4,7 @@ import logging
 import unittest
 
 # 3rd
-from mock import Mock
+from mock import Mock, patch
 
 # project
 from tests.checks.common import Fixtures
@@ -122,16 +122,21 @@ class SWbemServices(object):
         self._last_wmi_query = query
         self._last_wmi_flags = flags
         results = []
-        if query == "Select AvgDiskBytesPerWrite,FreeMegabytes "\
-                "from Win32_PerfFormattedData_PerfDisk_LogicalDisk":
+
+        if query == "Select AvgDiskBytesPerWrite,FreeMegabytes from Win32_PerfFormattedData_PerfDisk_LogicalDisk":  # noqa
             results += load_fixture("win32_perfformatteddata_perfdisk_logicaldisk", ("Name", "C:"))
             results += load_fixture("win32_perfformatteddata_perfdisk_logicaldisk", ("Name", "D:"))
 
-        # FIXME with a real example
-        if query == "Select ProcessorQueueLength,Timestamp_Sys100NS,Frequency_Sys100NS "\
-                "from Win32_PerfRawData_PerfOS_System":
-            results += load_fixture("win32_perfrawdata_perfos_system", ("Name", "C:"))
-            results += load_fixture("win32_perfrawdata_perfos_system", ("Name", "D:"))
+        if query == "Select CounterRawCount,CounterCounter,Timestamp_Sys100NS,Frequency_Sys100NS from Win32_PerfRawData_PerfOS_System":  # noqa
+            # Mock a previous and a current sample
+            sample_file = "win32_perfrawdata_perfos_system_previous" if flags == 131120\
+                else "win32_perfrawdata_perfos_system_current"
+            results += load_fixture(sample_file, ("Name", "C:"))
+            results += load_fixture(sample_file, ("Name", "D:"))
+
+        if query == "Select UnknownCounter,Timestamp_Sys100NS,Frequency_Sys100NS from Win32_PerfRawData_PerfOS_System":  # noqa
+            results += load_fixture("win32_perfrawdata_perfos_system_unknown", ("Name", "C:"))
+            results += load_fixture("win32_perfrawdata_perfos_system_unknown", ("Name", "D:"))
 
         return results
 
@@ -376,14 +381,14 @@ class TestUnitWMISampler(TestCommonWMI):
         self.assertEquals(len(wmi_sampler.property_names), 1)
 
         # Raw Performance class
-        wmi_sampler = WMISampler("Win32_PerfRawData_PerfOS_System", ["ProcessorQueueLength"])
-        self.assertEquals(len(wmi_sampler.property_names), 3)
+        wmi_sampler = WMISampler("Win32_PerfRawData_PerfOS_System", ["CounterRawCount", "CounterCounter"])  # noqa
+        self.assertEquals(len(wmi_sampler.property_names), 4)
 
     def test_raw_initial_sampling(self):
         """
         Query for initial sample for RAW Performance classes.
         """
-        wmi_sampler = WMISampler("Win32_PerfRawData_PerfOS_System", ["ProcessorQueueLength"])
+        wmi_sampler = WMISampler("Win32_PerfRawData_PerfOS_System", ["CounterRawCount", "CounterCounter"])  # noqa
         wmi_sampler.sample()
 
         # 2 queries should have been made: one for initialization, one for sampling
@@ -398,7 +403,7 @@ class TestUnitWMISampler(TestCommonWMI):
         Cache the qualifiers on the first query against RAW Performance classes.
         """
         # Append `flag_use_amended_qualifiers` flag on the first query
-        wmi_raw_sampler = WMISampler("Win32_PerfRawData_PerfOS_System", ["ProcessorQueueLength"])
+        wmi_raw_sampler = WMISampler("Win32_PerfRawData_PerfOS_System", ["CounterRawCount", "CounterCounter"])  # noqa
         wmi_raw_sampler._query()
 
         self.assertWMIQuery(wmi_raw_sampler, flags=131120)
@@ -411,11 +416,37 @@ class TestUnitWMISampler(TestCommonWMI):
         self.assertIn('CounterRawCount', wmi_raw_sampler.property_counter_types)
         self.assertIn('CounterCounter', wmi_raw_sampler.property_counter_types)
 
-    def function():
+    def test_raw_properties_formatting(self):
+        """
+        WMI Object's RAW data are returned formatted.
+        """
+        wmi_raw_sampler = WMISampler("Win32_PerfRawData_PerfOS_System", ["CounterRawCount", "CounterCounter"])  # noqa
+        wmi_raw_sampler.sample()
+
+        self.assertEquals(len(wmi_raw_sampler), 2)
+
+        for wmi_obj in wmi_raw_sampler:
+            self.assertWMIObject(wmi_obj, ["CounterRawCount", "CounterCounter", "Timestamp_Sys100NS", "Frequency_Sys100NS", "name"])  # noqa
+            self.assertEquals(wmi_obj['CounterRawCount'], 500)
+            self.assertEquals(wmi_obj['CounterCounter'], 50)
+
+    def test_raw_properties_fallback(self):
         """
         Print a warning on RAW Performance classes if the calculator is undefined.
+        Returns the original RAW value.
         """
-        pass
+        from checks.libs.wmi.sampler import WMISampler
+        logger = Mock()
+        wmi_raw_sampler = WMISampler(logger, "Win32_PerfRawData_PerfOS_System", ["UnknownCounter"])
+        wmi_raw_sampler.sample()
+
+        self.assertEquals(len(wmi_raw_sampler), 2)
+
+        for wmi_obj in wmi_raw_sampler:
+            self.assertWMIObject(wmi_obj, ["UnknownCounter", "Timestamp_Sys100NS", "Frequency_Sys100NS", "name"])  # noqa
+            self.assertEquals(wmi_obj['UnknownCounter'], 999)
+
+        self.assertTrue(logger.warning.called)
 
 
 class TestIntegrationWMI(unittest.TestCase):

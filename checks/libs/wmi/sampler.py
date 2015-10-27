@@ -6,7 +6,7 @@ from itertools import izip
 from win32com.client import Dispatch
 
 # project
-from checks.libs.wmi.counter_type import get_calculator, UndefinedCalculator
+from checks.libs.wmi.counter_type import get_calculator, get_raw, UndefinedCalculator
 
 
 class CaseInsensitiveDict(dict):
@@ -100,9 +100,13 @@ class WMISampler(object):
         """
         if self.is_raw_perf_class:
             # Format required
-            for current_wmi_object, previous_wmi_object in \
+            for previous_wmi_object, current_wmi_object in \
                     izip(self.previous_sample, self.current_sample):
-                yield current_wmi_object
+                formatted_wmi_object = self._format_property_values(
+                    previous_wmi_object,
+                    current_wmi_object
+                )
+                yield formatted_wmi_object
         else:
             #  No format required
             for wmi_object in self.current_sample:
@@ -120,16 +124,40 @@ class WMISampler(object):
         """
         return str(self.current_sample)
 
+    def _get_property_calculator(self, counter_type):
+        """
+        Fallback with
+        """
+        calculator = get_raw
+        try:
+            calculator = get_calculator(counter_type)
+        except UndefinedCalculator:
+            self.logger.warning(
+                u"Undefined WMI calculator for counter_type {counter_type}."
+                " Values are reported as RAW.".format(
+                    counter_type=counter_type
+                )
+            )
+
+        return calculator
+
     def _format_property_values(self, previous, current):
         """
         Format WMI Object's RAW data based on the previous sample.
 
         Do not override the original WMI Object !
         """
-        formatted_wmi_object = {}
+        formatted_wmi_object = CaseInsensitiveDict()
 
         for property_name, property_raw_value in current.iteritems():
-            pass
+            counter_type = self.property_counter_types.get(property_name)
+            property_formatted_value = property_raw_value
+
+            if counter_type:
+                calculator = self._get_property_calculator(counter_type)
+                property_formatted_value = calculator(previous, current, property_name)
+
+            formatted_wmi_object[property_name] = property_formatted_value
 
         return formatted_wmi_object
 
