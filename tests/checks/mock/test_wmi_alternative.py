@@ -1,3 +1,6 @@
+# 3p
+from mock import Mock
+
 # project
 from tests.checks.common import AgentCheckTest
 from tests.core.test_wmi import TestCommonWMI
@@ -23,17 +26,17 @@ class WMITestCase(AgentCheckTest, TestCommonWMI):
         'tag_by': "Name"
     }
 
+    WMI_MISSING_PROP_CONFIG = {
+        'class': "Win32_PerfRawData_PerfOS_System",
+        'metrics': [["UnknownCounter", "winsys.unknowncounter", "gauge"],
+                    ["MissingProperty", "this.will.not.be.reported", "gauge"]],
+        'tag_by': "Name"
+    }
+
     WMI_CONFIG_NO_TAG_BY = {
         'class': "Win32_PerfFormattedData_PerfDisk_LogicalDisk",
         'metrics': [["AvgDiskBytesPerWrite", "winsys.disk.avgdiskbytesperwrite", "gauge"],
                     ["FreeMegabytes", "winsys.disk.freemegabytes", "gauge"]],
-    }
-
-    WMI_CONFIG_FILTER = {
-        'class': "Win32_PerfFormattedData_PerfDisk_LogicalDisk",
-        'metrics': [["AvgDiskBytesPerWrite", "winsys.disk.avgdiskbytesperwrite", "gauge"],
-                    ["FreeMegabytes", "winsys.disk.freemegabytes", "gauge"]],
-        'filters': [{'Name': "C:"}]
     }
 
     def _get_wmi_sampler(self):
@@ -124,9 +127,22 @@ class WMITestCase(AgentCheckTest, TestCommonWMI):
 
         self.assertEquals(metrics, expected_metrics)
 
+    def test_missing_property(self):
+        """
+        Do not raise on missing properties, but print a warning.
+        """
+        # Set up the check
+        config = {
+            'instances': [self.WMI_MISSING_PROP_CONFIG]
+        }
+        logger = Mock()
+
+        self.run_check(config, mocks={'log': logger})
+        self.assertTrue(logger.warning.called)
+
     def test_mandatory_tag_by(self):
         """
-        Exception is raised when the result returned by tge WMI query contains multiple rows
+        Exception is raised when the result returned by the WMI query contains multiple rows
         but no `tag_by` value was given.
         """
         config = {

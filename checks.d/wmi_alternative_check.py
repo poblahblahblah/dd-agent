@@ -105,13 +105,22 @@ class WMIAlternativeCheck(AgentCheck):
                     self.log.warning(u"When extracting metrics with WMI, found a non digit value"
                                      " for property '{0}'.".format(wmi_property))
                     continue
+                except TypeError:
+                    self.log.warning(u"When extracting metrics with WMI, found a missing property"
+                                     " '{0}'".format(wmi_property))
+                    continue
         return metrics
 
     def _submit_metrics(self, metrics, metric_name_and_type_by_property):
         """
-        Resolve metric name and type and submit it.
+        Resolve metric names and types and submit it.
         """
         for metric in metrics:
+            if metric.name not in metric_name_and_type_by_property:
+                # Only report the metrics that were specified in the configration
+                # Ignore added properties like 'Timestamp_Sys100NS', `Frequency_Sys100NS`, etc ...
+                continue
+
             metric_name, metric_type = metric_name_and_type_by_property[metric.name]
             try:
                 func = getattr(self, metric_type)
@@ -153,98 +162,3 @@ class WMIAlternativeCheck(AgentCheck):
             self.wmi_props[instance_key] = (metric_name_by_property, properties)
 
         return self.wmi_props[instance_key]
-
-
-
-    # def _query_wmi(self, w, wmi_class, wmi_properties, filters, tag_by):
-    #     """
-    #     Query WMI using WMI Query Language (WQL).
-
-    #     Returns: List of unknown COMObject.
-    #     """
-    #     formated_wmi_properties = ",".join(wmi_properties)
-    #     wql = "Select {properties} from {wmi_class}{filters}".format(
-    #         properties=formated_wmi_properties,
-    #         wmi_class=wmi_class,
-    #         filters=self._format_filter(filters)
-    #     )
-    #     self.log.debug(u"Querying WMI: {0}".format(wql))
-
-    #     results = w.ExecQuery(wql)
-
-    #     try:
-    #         self._raise_for_invalid(results, tag_by)
-    #     except InvalidWMIQuery:
-    #         self.log.warning(u"Invalid WMI query: {0}".format(wql))
-    #         results = []
-    #     except MissingTagBy:
-    #         raise Exception(u"WMI query returned multiple rows but no `tag_by` value was given. "
-    #                         "class={wmi_class} - properties={wmi_properties}".format(
-    #                             wmi_class=wmi_class,
-    #                             wmi_properties=wmi_properties
-    #                         )
-    #                         )
-
-    #     return results
-
-    # def _extract_metrics(self, results, tag_by):
-    #     """
-    #     Extract, parse and tag metrics from WMI query results.
-
-    #     Returns: List of WMIMetric
-    #     ```
-    #     [
-    #         WMIMetric("FreeMegabytes", 19742, ["name:_total"]),
-    #         WMIMetric("AvgDiskBytesPerWrite", 1536, ["name:c:"]),
-    #     ]
-    #     ```
-    #     """
-    #     metrics = []
-    #     for res in results:
-    #         tags = []
-    #         for wmi_property in res.Properties_:
-    #             if wmi_property.Name == tag_by:
-    #                 tags.append(
-    #                     "{name}:{value}".format(
-    #                         name=tag_by.lower(),
-    #                         value=str(wmi_property.Value).lower()
-    #                     )
-    #                 )
-    #                 continue
-    #             try:
-    #                 metrics.append(WMIMetric(wmi_property.Name, float(wmi_property.Value), tags))
-    #             except ValueError:
-    #                 self.log.warning(u"When extracting metrics with WMI, found a non digit value"
-    #                                  " for property '{0}'.".format(wmi_property.Name))
-    #                 continue
-    #     return metrics
-
-    # def _submit_metrics(self, metrics, metric_name_and_type_by_property):
-    #     """
-    #     Submit metrics to Datadog with the right name and type.
-    #     """
-    #     for metric in metrics:
-
-    #         metric_key = (metric.name).lower()
-    #         metric_name, metric_type = metric_name_and_type_by_property[metric_key]
-
-    #         try:
-    #             func = getattr(self, metric_type)
-    #         except AttributeError:
-    #             raise Exception(u"Invalid metric type: {0}".format(metric_type))
-
-    #         func(metric_name, metric.value, metric.tags)
-
-    # @staticmethod
-    # def _raise_for_invalid(result, tag_by):
-    #     """
-    #     Raise:
-    #     * `InvalidWMIQuery`: when the result returned by the WMI query is invalid
-    #     * `MissingTagBy`: when the result returned by tge WMI query contains multiple rows
-    #         but no `tag_by` value was given
-    #     """
-    #     try:
-    #         if len(result) > 1 and not tag_by:
-    #             raise MissingTagBy
-    #     except (pywintypes.com_error):
-    #         raise InvalidWMIQuery

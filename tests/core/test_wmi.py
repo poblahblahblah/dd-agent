@@ -4,7 +4,7 @@ import logging
 import unittest
 
 # 3rd
-from mock import Mock, patch
+from mock import Mock
 
 # project
 from tests.checks.common import Fixtures
@@ -134,7 +134,7 @@ class SWbemServices(object):
             results += load_fixture(sample_file, ("Name", "C:"))
             results += load_fixture(sample_file, ("Name", "D:"))
 
-        if query == "Select UnknownCounter,Timestamp_Sys100NS,Frequency_Sys100NS from Win32_PerfRawData_PerfOS_System":  # noqa
+        if query == "Select UnknownCounter,MissingProperty,Timestamp_Sys100NS,Frequency_Sys100NS from Win32_PerfRawData_PerfOS_System":  # noqa
             results += load_fixture("win32_perfrawdata_perfos_system_unknown", ("Name", "C:"))
             results += load_fixture("win32_perfrawdata_perfos_system_unknown", ("Name", "D:"))
 
@@ -433,11 +433,12 @@ class TestUnitWMISampler(TestCommonWMI):
     def test_raw_properties_fallback(self):
         """
         Print a warning on RAW Performance classes if the calculator is undefined.
+
         Returns the original RAW value.
         """
         from checks.libs.wmi.sampler import WMISampler
         logger = Mock()
-        wmi_raw_sampler = WMISampler(logger, "Win32_PerfRawData_PerfOS_System", ["UnknownCounter"])
+        wmi_raw_sampler = WMISampler(logger, "Win32_PerfRawData_PerfOS_System", ["UnknownCounter", "MissingProperty"])  # noqa
         wmi_raw_sampler.sample()
 
         self.assertEquals(len(wmi_raw_sampler), 2)
@@ -446,7 +447,23 @@ class TestUnitWMISampler(TestCommonWMI):
             self.assertWMIObject(wmi_obj, ["UnknownCounter", "Timestamp_Sys100NS", "Frequency_Sys100NS", "name"])  # noqa
             self.assertEquals(wmi_obj['UnknownCounter'], 999)
 
+            # Access a non existent property
+            self.assertFalse(wmi_obj['MissingProperty'])
+
         self.assertTrue(logger.warning.called)
+
+    def test_missing_property(self):
+        """
+        Do not raise on missing properties.
+        """
+        wmi_raw_sampler = WMISampler("Win32_PerfRawData_PerfOS_System", ["UnknownCounter", "MissingProperty"])  # noqa
+        wmi_raw_sampler.sample()
+
+        self.assertEquals(len(wmi_raw_sampler), 2)
+
+        for wmi_obj in wmi_raw_sampler:
+            # Access a non existent property
+            self.assertFalse(wmi_obj['MissingProperty'])
 
 
 class TestIntegrationWMI(unittest.TestCase):
