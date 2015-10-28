@@ -323,7 +323,6 @@ if __name__ == "__main__":
         metrics = []
 
         metrics.extend(processes.check(agentConfig))
-        import pdb; pdb.set_trace()
         metrics.extend(memory.check(agentConfig))
         metrics.extend(cpu.check(agentConfig))
         metrics.extend(network.check(agentConfig))
