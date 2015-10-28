@@ -36,8 +36,8 @@ class Processes(Check):
             ["ProcessorQueueLength", "Processes"]
         )
 
-        self.gauge('system.proc.queue_length')
-        self.gauge('system.proc.count')
+        self.gauge('newsystem.proc.queue_length')
+        self.gauge('newsystem.proc.count')
 
     def check(self, agentConfig):
         self.wmi_sampler.sample()
@@ -52,9 +52,9 @@ class Processes(Check):
         processes = os.get('Processes')
 
         if processor_queue_length is not None:
-            self.save_sample('system.proc.queue_length', processor_queue_length)
+            self.save_sample('newsystem.proc.queue_length', processor_queue_length)
         if processes is not None:
-            self.save_sample('system.proc.count', processes)
+            self.save_sample('newsystem.proc.count', processes)
 
         return self.get_metrics()
 
@@ -74,26 +74,26 @@ class Memory(Check):
             "Win32_PerfFormattedData_PerfOS_Memory",
             ["CacheBytes", "CommittedBytes", "PoolPagedBytes", "PoolNonpagedBytes"])
 
-        self.gauge('system.mem.free')
-        self.gauge('system.mem.used')
-        self.gauge('system.mem.total')
+        self.gauge('newsystem.mem.free')
+        self.gauge('newsystem.mem.used')
+        self.gauge('newsystem.mem.total')
         # area of physical memory that stores recently used pages of data
         # for applications
-        self.gauge('system.mem.cached')
+        self.gauge('newsystem.mem.cached')
         # Committed memory is physical memory for which space has been
         # reserved on the disk paging file in case it must be written
         # back to disk
-        self.gauge('system.mem.committed')
+        self.gauge('newsystem.mem.committed')
         # physical memory used by the operating system, for objects
         # that can be written to disk when they are not being used
-        self.gauge('system.mem.paged')
+        self.gauge('newsystem.mem.paged')
         # physical memory used by the operating system for objects that
         # cannot be written to disk, but must remain in physical memory
         # as long as they are allocated.
-        self.gauge('system.mem.nonpaged')
+        self.gauge('newsystem.mem.nonpaged')
         # usable = free + cached
-        self.gauge('system.mem.usable')
-        self.gauge('system.mem.pct_usable')
+        self.gauge('newsystem.mem.usable')
+        self.gauge('newsystem.mem.pct_usable')
 
     def check(self, agentConfig):
         self.os_wmi_sampler.sample()
@@ -115,9 +115,9 @@ class Memory(Check):
         if total_visible_memory_size is not None and free_physical_memory is not None:
             total = int(total_visible_memory_size) / KB2MB
             free = int(free_physical_memory) / KB2MB
-            self.save_sample('system.mem.total', total)
-            self.save_sample('system.mem.free', free)
-            self.save_sample('system.mem.used', total - free)
+            self.save_sample('newsystem.mem.total', total)
+            self.save_sample('newsystem.mem.free', free)
+            self.save_sample('newsystem.mem.used', total - free)
 
         self.mem_wmi_sampler.sample()
 
@@ -135,19 +135,19 @@ class Memory(Check):
 
         if cache_bytes is not None:
             cached = int(cache_bytes) / B2MB
-            self.save_sample('system.mem.cached', cached)
+            self.save_sample('newsystem.mem.cached', cached)
         if committed_bytes is not None:
-            self.save_sample('system.mem.committed', int(committed_bytes) / B2MB)
+            self.save_sample('newsystem.mem.committed', int(committed_bytes) / B2MB)
         if pool_paged_bytes is not None:
-            self.save_sample('system.mem.paged', int(pool_paged_bytes) / B2MB)
+            self.save_sample('newsystem.mem.paged', int(pool_paged_bytes) / B2MB)
         if pool_non_paged_bytes is not None:
-            self.save_sample('system.mem.nonpaged', int(pool_non_paged_bytes) / B2MB)
+            self.save_sample('newsystem.mem.nonpaged', int(pool_non_paged_bytes) / B2MB)
 
         usable = free + cached
-        self.save_sample('system.mem.usable', usable)
+        self.save_sample('newsystem.mem.usable', usable)
         if total > 0:
             pct_usable = float(usable) / total
-            self.save_sample('system.mem.pct_usable', pct_usable)
+            self.save_sample('newsystem.mem.pct_usable', pct_usable)
 
         return self.get_metrics()
 
@@ -163,10 +163,10 @@ class Cpu(Check):
             ["Name", "PercentInterruptTime"]
         )
 
-        self.counter('system.cpu.user')
-        self.counter('system.cpu.idle')
-        self.gauge('system.cpu.interrupt')
-        self.counter('system.cpu.system')
+        self.counter('newsystem.cpu.user')
+        self.counter('newsystem.cpu.idle')
+        self.gauge('newsystem.cpu.interrupt')
+        self.counter('newsystem.cpu.system')
 
     def check(self, agentConfig):
 
@@ -179,13 +179,13 @@ class Cpu(Check):
 
         cpu_interrupt = self._average_metric(self.wmi_sampler, 'PercentInterruptTime')
         if cpu_interrupt is not None:
-            self.save_sample('system.cpu.interrupt', cpu_interrupt)
+            self.save_sample('newsystem.cpu.interrupt', cpu_interrupt)
 
         cpu_percent = psutil.cpu_times()
 
-        self.save_sample('system.cpu.user', 100 * cpu_percent.user / psutil.NUM_CPUS)
-        self.save_sample('system.cpu.idle', 100 * cpu_percent.idle / psutil.NUM_CPUS)
-        self.save_sample('system.cpu.system', 100 * cpu_percent.system / psutil.NUM_CPUS)
+        self.save_sample('newsystem.cpu.user', 100 * cpu_percent.user / psutil.NUM_CPUS)
+        self.save_sample('newsystem.cpu.idle', 100 * cpu_percent.idle / psutil.NUM_CPUS)
+        self.save_sample('newsystem.cpu.system', 100 * cpu_percent.system / psutil.NUM_CPUS)
 
         return self.get_metrics()
 
@@ -222,8 +222,8 @@ class Network(Check):
             ["Name", "BytesReceivedPerSec", "BytesSentPerSec"]
         )
 
-        self.gauge('system.net.bytes_rcvd')
-        self.gauge('system.net.bytes_sent')
+        self.gauge('newsystem.net.bytes_rcvd')
+        self.gauge('newsystem.net.bytes_sent')
 
     def check(self, agentConfig):
         self.wmi_sampler.sample()
@@ -240,10 +240,10 @@ class Network(Check):
 
             name = self.normalize_device_name(name)
             if bytes_received_per_sec is not None:
-                self.save_sample('system.net.bytes_rcvd', bytes_received_per_sec,
+                self.save_sample('newsystem.net.bytes_rcvd', bytes_received_per_sec,
                                  device_name=name)
             if bytes_sent_per_sec is not None:
-                self.save_sample('system.net.bytes_sent', bytes_sent_per_sec,
+                self.save_sample('newsystem.net.bytes_sent', bytes_sent_per_sec,
                                  device_name=name)
         return self.get_metrics()
 
@@ -260,11 +260,11 @@ class IO(Check):
              "DiskReadsPerSec", "CurrentDiskQueueLength"]
         )
 
-        self.gauge('system.io.wkb_s')
-        self.gauge('system.io.w_s')
-        self.gauge('system.io.rkb_s')
-        self.gauge('system.io.r_s')
-        self.gauge('system.io.avg_q_sz')
+        self.gauge('newsystem.io.wkb_s')
+        self.gauge('newsystem.io.w_s')
+        self.gauge('newsystem.io.rkb_s')
+        self.gauge('newsystem.io.r_s')
+        self.gauge('newsystem.io.avg_q_sz')
 
     def check(self, agentConfig):
         self.wmi_sampler.sample()
@@ -283,23 +283,23 @@ class IO(Check):
             disk_reads_per_sec = device.get('DiskReadsPerSec')
             current_disk_queue_length = device.get('CurrentDiskQueueLength')
 
-            name = self.normalize_device_name(device.name)
+            name = self.normalize_device_name(name)
             if should_ignore_disk(name, blacklist_re):
                 continue
             if disk_write_bytes_per_sec is not None:
-                self.save_sample('system.io.wkb_s', int(disk_write_bytes_per_sec) / B2KB,
+                self.save_sample('newsystem.io.wkb_s', int(disk_write_bytes_per_sec) / B2KB,
                                  device_name=name)
             if disk_writes_per_sec is not None:
-                self.save_sample('system.io.w_s', int(disk_writes_per_sec),
+                self.save_sample('newsystem.io.w_s', int(disk_writes_per_sec),
                                  device_name=name)
             if disk_read_bytes_per_sec is not None:
-                self.save_sample('system.io.rkb_s', int(disk_read_bytes_per_sec) / B2KB,
+                self.save_sample('newsystem.io.rkb_s', int(disk_read_bytes_per_sec) / B2KB,
                                  device_name=name)
             if disk_reads_per_sec is not None:
-                self.save_sample('system.io.r_s', int(disk_reads_per_sec),
+                self.save_sample('newsystem.io.r_s', int(disk_reads_per_sec),
                                  device_name=name)
             if current_disk_queue_length is not None:
-                self.save_sample('system.io.avg_q_sz', current_disk_queue_length,
+                self.save_sample('newsystem.io.avg_q_sz', current_disk_queue_length,
                                  device_name=name)
         return self.get_metrics()
 
@@ -320,14 +320,16 @@ if __name__ == "__main__":
 
     while True:
         start_time = time.time()
+        metrics = []
 
-        processes.check(agentConfig)
-        memory.check(agentConfig)
-        cpu.check(agentConfig)
-        network.check(agentConfig)
-        io.check(agentConfig)
+        metrics.extend(processes.check(agentConfig))
+        metrics.extend(memory.check(agentConfig))
+        metrics.extend(cpu.check(agentConfig))
+        metrics.extend(network.check(agentConfig))
+        metrics.extend(io.check(agentConfig))
 
         log.info("Checks completed in {0:0.2f}ms".format(
             ((time.time() - start_time) * 1000.0)
         ))
+        log.info("{0} metrics fetched".format(len(metrics)))
         time.sleep(1)
