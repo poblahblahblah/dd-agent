@@ -92,7 +92,7 @@ def calculate_perf_100nsec_timer(previous, current, property_name):
     d0 = previous["Timestamp_Sys100NS"]
     d1 = current["Timestamp_Sys100NS"]
 
-    if not n0 or not n1:
+    if n0 is None or n1 is None:
         return
 
     return (n1 - n0) / (d1 - d0) * 100
@@ -111,7 +111,7 @@ def calculate_perf_counter_bulk_count(previous, current, property_name):
     d1 = current["Timestamp_Sys100NS"]
     f = current["Frequency_Sys100NS"]
 
-    if not n0 or not n1:
+    if n0 is None or n1 is None:
         return
 
     return (n1 - n0) / ((d1 - d0) / f)
@@ -130,7 +130,7 @@ def calculate_perf_counter_counter(previous, current, property_name):
     d1 = current["Timestamp_Sys100NS"]
     f = current["Frequency_Sys100NS"]
 
-    if not n0 or not n1:
+    if n0 is None or n1 is None:
         return
 
     return (n1 - n0) / ((d1 - d0) / f)

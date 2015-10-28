@@ -228,7 +228,6 @@ class Network(Check):
     def check(self, agentConfig):
         self.wmi_sampler.sample()
 
-        import pdb; pdb.set_trace()
         if not (len(self.wmi_sampler)):
             self.logger.info('Missing Win32_PerfRawData_Tcpip_NetworkInterface WMI class.'
                              ' No network metrics will be returned')
