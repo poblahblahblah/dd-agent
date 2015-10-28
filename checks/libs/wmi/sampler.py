@@ -266,7 +266,7 @@ class WMISampler(object):
 
             # For the first query, cache the qualifiers to determine each
             # propertie's "CounterType"
-            includes_qualifiers = self.property_counter_types is None
+            includes_qualifiers = self.is_raw_perf_class and self.property_counter_types is None
             if includes_qualifiers:
                 self.property_counter_types = CaseInsensitiveDict()
                 query_flags |= flag_use_amended_qualifiers

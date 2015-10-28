@@ -255,7 +255,7 @@ class IO(Check):
         #  Sampler(s)
         self.wmi_sampler = WMISampler(
             logger,
-            "Win32_PerfRawData_PerfDisk_LogicalDisk",
+            "Win32_PerfFormattedData_PerfDisk_LogicalDisk",
             ["Name", "DiskWriteBytesPerSec", "DiskWritesPerSec", "DiskReadBytesPerSec",
              "DiskReadsPerSec", "CurrentDiskQueueLength"]
         )
