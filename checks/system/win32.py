@@ -103,7 +103,6 @@ class Memory(Check):
                              ' No memory metrics will be returned.')
             return
 
-        import pdb; pdb.set_trace()
         os = self.os_wmi_sampler[0]
 
         total = 0
@@ -324,6 +323,7 @@ if __name__ == "__main__":
         metrics = []
 
         metrics.extend(processes.check(agentConfig))
+        import pdb; pdb.set_trace()
         metrics.extend(memory.check(agentConfig))
         metrics.extend(cpu.check(agentConfig))
         metrics.extend(network.check(agentConfig))
