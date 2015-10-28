@@ -103,6 +103,7 @@ class Memory(Check):
                              ' No memory metrics will be returned.')
             return
 
+        import pdb; pdb.set_trace()
         os = self.os_wmi_sampler[0]
 
         total = 0
