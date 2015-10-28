@@ -84,7 +84,12 @@ class WMIAlternativeCheck(AgentCheck):
         ]
         """
         if len(wmi_sampler) > 1 and not tag_by:
-            raise MissingTagBy
+            raise MissingTagBy(
+                u"WMI query returned multiple rows but no `tag_by` value was given."
+                " samples={samples}".format(
+                    samples=wmi_sampler,
+                )
+            )
 
         metrics = []
 
