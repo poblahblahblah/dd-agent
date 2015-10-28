@@ -308,7 +308,7 @@ if __name__ == "__main__":
     import time
     import logging
 
-    logging.basicConfig(level=logging.INFO, format='%(asctime)-15s %(message)s')
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)-15s %(message)s')
     log = logging.getLogger()
     agentConfig = {}
 
