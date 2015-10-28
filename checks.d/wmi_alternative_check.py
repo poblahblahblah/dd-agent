@@ -86,8 +86,10 @@ class WMIAlternativeCheck(AgentCheck):
         if len(wmi_sampler) > 1 and not tag_by:
             raise MissingTagBy(
                 u"WMI query returned multiple rows but no `tag_by` value was given."
-                " samples={samples}".format(
-                    samples=wmi_sampler,
+                "class={wmi_class} - properties={wmi_properties} - filters={filters}".format(
+                    wmi_class=wmi_sampler.class_name,
+                    wmi_properties=wmi_sampler.property_names,
+                    filters=wmi_sampler.filters,
                 )
             )
 
