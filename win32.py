@@ -320,12 +320,13 @@ if __name__ == "__main__":
 
     while True:
         start_time = time.time()
+        metrics = []
 
-        processes.check(agentConfig)
-        memory.check(agentConfig)
-        cpu.check(agentConfig)
-        network.check(agentConfig)
-        io.check(agentConfig)
+        metrics.extend(processes.check(agentConfig))
+        metrics.extend(memory.check(agentConfig))
+        metrics.extend(cpu.check(agentConfig))
+        metrics.extend(network.check(agentConfig))
+        metrics.extend(io.check(agentConfig))
 
         log.info("Checks completed in {0:0.2f}ms".format(
             ((time.time() - start_time) * 1000.0)
