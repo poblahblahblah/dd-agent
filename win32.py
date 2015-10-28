@@ -331,4 +331,5 @@ if __name__ == "__main__":
         log.info("Checks completed in {0:0.2f}ms".format(
             ((time.time() - start_time) * 1000.0)
         ))
+        log.info("{0} metrics fetched".format(len(metrics)))
         time.sleep(1)
