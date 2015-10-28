@@ -32,7 +32,7 @@ class Processes(Check):
         # Sampler(s)
         self.wmi_sampler = WMISampler(
             logger,
-            "Win32_PerfFormattedData_PerfOS_System",
+            "Win32_PerfRawData_PerfOS_System",
             ["ProcessorQueueLength", "Processes"]
         )
 
@@ -43,7 +43,7 @@ class Processes(Check):
         self.wmi_sampler.sample()
 
         if not (len(self.wmi_sampler)):
-            self.logger.info('Missing Win32_PerfFormattedData_PerfOS_System WMI class.'
+            self.logger.info('Missing Win32_PerfRawData_PerfOS_System WMI class.'
                              ' No process metrics will be returned.')
             return
 
@@ -71,7 +71,7 @@ class Memory(Check):
         )
         self.mem_wmi_sampler = WMISampler(
             logger,
-            "Win32_PerfFormattedData_PerfOS_Memory",
+            "Win32_PerfRawData_PerfOS_Memory",
             ["CacheBytes", "CommittedBytes", "PoolPagedBytes", "PoolNonpagedBytes"])
 
         self.gauge('newsystem.mem.free')
@@ -103,7 +103,6 @@ class Memory(Check):
                              ' No memory metrics will be returned.')
             return
 
-        import pdb; pdb.set_trace()
         os = self.os_wmi_sampler[0]
 
         total = 0
@@ -123,7 +122,7 @@ class Memory(Check):
         self.mem_wmi_sampler.sample()
 
         if not (len(self.mem_wmi_sampler)):
-            self.logger.info('Missing Win32_PerfFormattedData_PerfOS_Memory WMI class.'
+            self.logger.info('Missing Win32_PerfRawData_PerfOS_Memory WMI class.'
                              ' No memory metrics will be returned.')
             return self.get_metrics()
 
@@ -160,7 +159,7 @@ class Cpu(Check):
         # Sampler(s)
         self.wmi_sampler = WMISampler(
             logger,
-            "Win32_PerfFormattedData_PerfOS_Processor",
+            "Win32_PerfRawData_PerfOS_Processor",
             ["Name", "PercentInterruptTime"]
         )
 
@@ -174,7 +173,7 @@ class Cpu(Check):
         self.wmi_sampler.sample()
 
         if not (len(self.wmi_sampler)):
-            self.logger.info('Missing Win32_PerfFormattedData_PerfOS_Processor WMI class.'
+            self.logger.info('Missing Win32_PerfRawData_PerfOS_Processor WMI class.'
                              ' No CPU metrics will be returned')
             return
 
@@ -219,7 +218,7 @@ class Network(Check):
         # Sampler(s)
         self.wmi_sampler = WMISampler(
             logger,
-            "Win32_PerfFormattedData_Tcpip_NetworkInterface",
+            "Win32_PerfRawData_Tcpip_NetworkInterface",
             ["Name", "BytesReceivedPerSec", "BytesSentPerSec"]
         )
 
@@ -230,7 +229,7 @@ class Network(Check):
         self.wmi_sampler.sample()
 
         if not (len(self.wmi_sampler)):
-            self.logger.info('Missing Win32_PerfFormattedData_Tcpip_NetworkInterface WMI class.'
+            self.logger.info('Missing Win32_PerfRawData_Tcpip_NetworkInterface WMI class.'
                              ' No network metrics will be returned')
             return
 
@@ -256,7 +255,7 @@ class IO(Check):
         #  Sampler(s)
         self.wmi_sampler = WMISampler(
             logger,
-            "Win32_PerfFormattedData_PerfDisk_LogicalDisk",
+            "Win32_PerfRawData_PerfDisk_LogicalDisk",
             ["Name", "DiskWriteBytesPerSec", "DiskWritesPerSec", "DiskReadBytesPerSec",
              "DiskReadsPerSec", "CurrentDiskQueueLength"]
         )
@@ -271,7 +270,7 @@ class IO(Check):
         self.wmi_sampler.sample()
 
         if not (len(self.wmi_sampler)):
-            self.logger.info('Missing Win32_PerfFormattedData_PerfDisk_LogicalDiskUnable WMI class.'
+            self.logger.info('Missing Win32_PerfRawData_PerfDisk_LogicalDiskUnable WMI class.'
                              ' No I/O metrics will be returned.')
             return
 
