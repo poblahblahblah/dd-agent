@@ -21,7 +21,6 @@ from config import get_system_stats, get_version
 from resources.processes import Processes as ResProcesses
 import checks.system.unix as u
 import checks.system.win32 as w32
-import checks.system.win32_old as w32_old
 import modules
 from util import (
     EC2,
@@ -205,15 +204,6 @@ class Collector(object):
             'cpu': w32.Cpu(log)
         }
 
-        # Win32 old System `Checks
-        self._win32_old_system_checks = {
-            'io': w32_old.IO(log),
-            'proc': w32_old.Processes(log),
-            'memory': w32_old.Memory(log),
-            'network': w32_old.Network(log),
-            'cpu': w32_old.Cpu(log)
-        }
-
         # Old-style metric checks
         self._ganglia = Ganglia(log)
         self._dogstream = Dogstreams.init(log, self.agentConfig)
@@ -300,13 +290,6 @@ class Collector(object):
                 metrics.extend(self._win32_system_checks['network'].check(self.agentConfig))
                 metrics.extend(self._win32_system_checks['io'].check(self.agentConfig))
                 metrics.extend(self._win32_system_checks['proc'].check(self.agentConfig))
-
-                # Old metrics
-                metrics.extend(self._win32_old_system_checks['memory'].check(self.agentConfig))
-                metrics.extend(self._win32_old_system_checks['cpu'].check(self.agentConfig))
-                metrics.extend(self._win32_old_system_checks['network'].check(self.agentConfig))
-                metrics.extend(self._win32_old_system_checks['io'].check(self.agentConfig))
-                metrics.extend(self._win32_old_system_checks['proc'].check(self.agentConfig))
             except Exception:
                 log.exception('Unable to fetch Windows system metrics.')
         else:
