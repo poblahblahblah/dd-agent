@@ -283,7 +283,7 @@ class IO(Check):
             disk_reads_per_sec = device.get('DiskReadsPerSec')
             current_disk_queue_length = device.get('CurrentDiskQueueLength')
 
-            name = self.normalize_device_name(device.name)
+            name = self.normalize_device_name(name)
             if should_ignore_disk(name, blacklist_re):
                 continue
             if disk_write_bytes_per_sec is not None:
