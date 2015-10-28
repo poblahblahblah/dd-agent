@@ -39,6 +39,13 @@ class WMITestCase(AgentCheckTest, TestCommonWMI):
                     ["FreeMegabytes", "winsys.disk.freemegabytes", "gauge"]],
     }
 
+    WMI_CONFIG_FILTERS = {
+        'class': "Win32_PerfFormattedData_PerfDisk_LogicalDisk",
+        'metrics': [["AvgDiskBytesPerWrite", "winsys.disk.avgdiskbytesperwrite", "gauge"],
+                    ["FreeMegabytes", "winsys.disk.freemegabytes", "gauge"]],
+        'filters': [{'Name': "_Total"}],
+    }
+
     def _get_wmi_sampler(self):
         """
         Helper to easily retrieve, if exists and unique, the WMISampler created
@@ -74,6 +81,24 @@ class WMITestCase(AgentCheckTest, TestCommonWMI):
         # Connection was established with the right parameters
         self.assertWMIConnWith(wmi_sampler, "myhost")
         self.assertWMIConnWith(wmi_sampler, "some/namespace")
+
+    def test_wmi_sampler_initialization(self):
+        """
+        An instance creates its corresponding WMISampler.
+        """
+        # Run check
+        config = {
+            'instances': [self.WMI_CONFIG_FILTERS]
+        }
+        self.run_check(config)
+
+        # Retrieve the sampler
+        wmi_sampler = self._get_wmi_sampler()
+
+        # Assert the sampler
+        self.assertEquals(wmi_sampler.class_name, "Win32_PerfFormattedData_PerfDisk_LogicalDisk")
+        self.assertEquals(wmi_sampler.property_names, ["AvgDiskBytesPerWrite", "FreeMegabytes"])
+        self.assertEquals(wmi_sampler.filters, [{'Name': "_Total"}])
 
     def test_wmi_properties(self):
         """

@@ -82,11 +82,12 @@ class WMIAlternativeCheck(AgentCheck):
             WMIMetric("freemegabytes", 19742, ["name:_total"]),
             WMIMetric("avgdiskbytesperwrite", 1536, ["name:c:"]),
         ]
+        ```
         """
         if len(wmi_sampler) > 1 and not tag_by:
             raise MissingTagBy(
                 u"WMI query returned multiple rows but no `tag_by` value was given."
-                "class={wmi_class} - properties={wmi_properties} - filters={filters}".format(
+                " class={wmi_class} - properties={wmi_properties} - filters={filters}".format(
                     wmi_class=wmi_sampler.class_name,
                     wmi_properties=wmi_sampler.property_names,
                     filters=wmi_sampler.filters,
@@ -143,7 +144,7 @@ class WMIAlternativeCheck(AgentCheck):
         return "{host}:{namespace}:{wmi_class}".format(
             host=host,
             namespace=namespace,
-            wmi_class=wmi_class
+            wmi_class=wmi_class,
         )
 
     def _get_wmi_sampler(self, instance_key, wmi_class, properties, **kwargs):

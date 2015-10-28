@@ -1,6 +1,7 @@
 # stdlib
-import pywintypes
+from copy import deepcopy
 from itertools import izip
+import pywintypes
 
 # 3p
 from win32com.client import Dispatch
@@ -69,11 +70,22 @@ class WMISampler(object):
         self.class_name = class_name
         self.property_names = property_names
         self.filters = filters
+        self._formatted_filters = None
         self.property_counter_types = None
 
         # Samples
         self.current_sample = None
         self.previous_sample = None
+
+    @property
+    def formatted_filters(self):
+        """
+        Cache and return filters as a comprehensive WQL clause.
+        """
+        if not self._formatted_filters:
+            filters = deepcopy(self.filters)
+            self._formatted_filters = self._format_filter(filters)
+        return self._formatted_filters
 
     def sample(self):
         """
@@ -252,7 +264,7 @@ class WMISampler(object):
         wql = "Select {property_names} from {class_name}{filters}".format(
             property_names=formated_property_names,
             class_name=self.class_name,
-            filters=self._format_filter(self.filters),
+            filters=self.formatted_filters,
         )
         self.logger.debug(u"Querying WMI: {0}".format(wql))
 
