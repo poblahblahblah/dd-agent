@@ -15,7 +15,7 @@ UP_METRIC = 'Up'
 SEARCH_WILDCARD = '*'
 
 
-class WMICheck(AgentCheck):
+class WMIOldCheck(AgentCheck):
     def __init__(self, name, init_config, agentConfig, instances):
         AgentCheck.__init__(self, name, init_config, agentConfig, instances)
         self.wmi_conns = {}
