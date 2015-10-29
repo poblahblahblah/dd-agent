@@ -104,7 +104,7 @@ class WMICheck(AgentCheck):
                     tags.append(
                         "{name}:{value}".format(
                             name=tag_by.lower(),
-                            value=wmi_value.lower()
+                            value=str(wmi_value).lower()
                         )
                     )
                     continue
