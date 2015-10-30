@@ -36,14 +36,10 @@ DEFAULT_ENABLED_GAUGES = [
     'memory.usage',
     'filesystem.usage']
 
-
-
-
-def historate(self, metric, value, tags=None, hostname=None, device_name=None):
-    self.historate(metric, value, ["container_name"], tags=tags, hostname=hostname, device_name=device_name)
-
 class Kubernetes(AgentCheck):
     """ Collect metrics and events from kubelet """
+
+    pod_names_by_container = {}
 
     def __init__(self, name, init_config, agentConfig, instances=None):
         if instances is not None and len(instances) > 1:
@@ -127,7 +123,7 @@ class Kubernetes(AgentCheck):
         self.publish_aliases = _is_affirmative(instance.get('publish_aliases', DEFAULT_PUBLISH_ALIASES))
         self.use_histogram = _is_affirmative(instance.get('use_histogram', DEFAULT_USE_HISTOGRAM))
         if self.use_histogram:
-            self.publish_rate = historate
+            self.publish_rate = AgentCheck.generate_historate_func(["container_name"])
             self.publish_gauge = AgentCheck.histogram
         else:
             self.publish_rate = AgentCheck.rate

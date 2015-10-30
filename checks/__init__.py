@@ -296,6 +296,12 @@ class AgentCheck(object):
 
     DEFAULT_MIN_COLLECTION_INTERVAL = 0
 
+    _enabled_checks = []
+
+    @classmethod
+    def is_check_enabled(cls, name):
+        return name in cls._enabled_checks
+        
     def __init__(self, name, init_config, agentConfig, instances=None):
         """
         Initialize a new check.
@@ -307,6 +313,9 @@ class AgentCheck(object):
         """
         from aggregator import MetricsAggregator
 
+        self._enabled_checks.append(name)
+        self._enabled_checks = list(set(self._enabled_checks))
+
         self.name = name
         self.init_config = init_config or {}
         self.agentConfig = agentConfig
@@ -315,7 +324,6 @@ class AgentCheck(object):
 
         self.hostname = agentConfig.get('checksd_hostname') or get_hostname(agentConfig)
         self.log = logging.getLogger('%s.%s' % (__name__, name))
-
         self.aggregator = MetricsAggregator(
             self.hostname,
             formatter=agent_formatter,
@@ -429,6 +437,14 @@ class AgentCheck(object):
         :param device_name: (optional) The device name for this metric
         """
         self.aggregator.histogram(metric, value, tags, hostname, device_name)
+
+    @classmethod
+    def generate_historate_func(cls, excluding_tags):
+        def fct(self, metric, value, tags=None, hostname=None, device_name=None):
+            cls.historate(self, metric, value, excluding_tags,
+                tags=tags, hostname=hostname, device_name=device_name)
+
+        return fct
 
     def historate(self, metric, value, excluding_tags, tags=None, hostname=None, device_name=None):
         """

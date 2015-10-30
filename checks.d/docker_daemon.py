@@ -19,10 +19,11 @@ SERVICE_CHECK_NAME = 'docker.service_up'
 SIZE_REFRESH_RATE = 5 # Collect container sizes every 5 iterations of the check
 MAX_CGROUP_LISTING_RETRIES = 3
 CONTAINER_ID_RE = re.compile('[0-9a-f]{64}')
+POD_NAME_LABEL = "io.kubernetes.pod.name"
 
 GAUGE = AgentCheck.gauge
 RATE = AgentCheck.rate
-HISTORATE = AgentCheck.historate
+HISTORATE = AgentCheck.generate_historate_func(["container_name"])
 
 CGROUP_METRICS = [
     {
@@ -160,6 +161,8 @@ class DockerDaemon(AgentCheck):
         self.init_success = False
         self.init()
 
+    def is_k8s(self):
+        return self.is_check_enabled("kubernetes")
 
     def init(self):
         try:
@@ -181,7 +184,9 @@ class DockerDaemon(AgentCheck):
 
             # Set tagging options
             self.custom_tags = instance.get("tags", [])
-            self.collect_labels_as_tags = instance.get("collect_labels_as_tags", [])
+            self.collect_labels_as_Ktags = instance.get("collect_labels_as_tags", [])
+            if self.is_k8s():
+                self.collect_labels_as_tags.append("io.kubernetes.pod.name")
 
             self.use_histogram = _is_affirmative(instance.get('use_histogram', False))
             performance_tags = instance.get("performance_tags", DEFAULT_PERFORMANCE_TAGS)
@@ -215,6 +220,8 @@ class DockerDaemon(AgentCheck):
             self.collect_events = _is_affirmative(instance.get('collect_events', True))
             self.collect_image_size = _is_affirmative(instance.get('collect_image_size', False))
             self.collect_ecs_tags = _is_affirmative(instance.get('ecs_tags', True)) and Platform.is_ecs_instance()
+
+            self.ecs_tags = {}
 
         except Exception, e:
             self.log.critical(e)
@@ -341,10 +348,14 @@ class DockerDaemon(AgentCheck):
                 for k in self.collect_labels_as_tags:
                     if k in labels:
                         v = labels[k]
+                        if k == POD_NAME_LABEL and self.is_k8s():
+                            k = "pod_name"
                         if not v:
                             tags.append(k)
                         else:
                             tags.append("%s:%s" % (k,v))
+                    if k == POD_NAME_LABEL and self.is_k8s() and k not in labels:
+                        tags.append("pod_name:no_pod")
 
             # Get entity specific tags
             if tag_type is not None:
@@ -489,8 +500,6 @@ class DockerDaemon(AgentCheck):
                             metric_func = HISTORATE
                         if value is not None:
                             metric_func(self, mname, value, tags=tags)
-
-
 
         except MountException as ex:
             if self.cgroup_listing_retries > MAX_CGROUP_LISTING_RETRIES:
