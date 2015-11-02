@@ -184,7 +184,7 @@ class DockerDaemon(AgentCheck):
 
             # Set tagging options
             self.custom_tags = instance.get("tags", [])
-            self.collect_labels_as_Ktags = instance.get("collect_labels_as_tags", [])
+            self.collect_labels_as_tags = instance.get("collect_labels_as_tags", [])
             if self.is_k8s():
                 self.collect_labels_as_tags.append("io.kubernetes.pod.name")
 
