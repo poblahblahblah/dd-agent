@@ -249,10 +249,11 @@ class Collector(object):
         return pprint.pformat(raw_stats, indent=4)
 
     @log_exceptions(log)
-    def run(self, checksd=None, start_event=True):
+    def run(self, checksd=None, start_event=True, configs_reloaded=False):
         """
         Collect data from each check and submit their data.
         """
+        log.debug("Found {num_checks} checks".format(num_checks=len(checksd['initialized_checks'])))
         timer = Timer()
         if not Platform.is_windows():
             cpu_clock = time.clock()
@@ -267,7 +268,7 @@ class Collector(object):
 
         # Find the AgentMetrics check and pop it out
         # This check must run at the end of the loop to collect info on agent performance
-        if not self._agent_metrics:
+        if not self._agent_metrics or configs_reloaded:
             for check in self.initialized_checks_d:
                 if check.name == AGENT_METRICS_CHECK_NAME:
                     self._agent_metrics = check
@@ -305,7 +306,7 @@ class Collector(object):
             memory = sys_checks['memory'].check(self.agentConfig)
 
             if memory:
-                payload.update({
+                memstats = {
                     'memPhysUsed': memory.get('physUsed'),
                     'memPhysPctUsable': memory.get('physPctUsable'),
                     'memPhysFree': memory.get('physFree'),
@@ -318,7 +319,8 @@ class Collector(object):
                     'memCached': memory.get('physCached'),
                     'memBuffers': memory.get('physBuffers'),
                     'memShared': memory.get('physShared')
-                })
+                }
+                payload.update(memstats)
 
             ioStats = sys_checks['io'].check(self.agentConfig)
             if ioStats:
@@ -751,6 +753,7 @@ class Collector(object):
             pass
 
         metadata["hostname"] = self.hostname
+        metadata["timezones"] = time.tzname
 
         # Add cloud provider aliases
         host_aliases = GCE.get_host_aliases(self.agentConfig)
