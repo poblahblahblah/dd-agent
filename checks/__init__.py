@@ -301,7 +301,7 @@ class AgentCheck(object):
     @classmethod
     def is_check_enabled(cls, name):
         return name in cls._enabled_checks
-        
+
     def __init__(self, name, init_config, agentConfig, instances=None):
         """
         Initialize a new check.
@@ -446,6 +446,20 @@ class AgentCheck(object):
 
         return fct
 
+    @classmethod
+    def generate_histogram_func(cls, excluding_tags):
+        def fct(self, metric, value, tags=None, hostname=None, device_name=None):
+            tags = list(tags) # Use a copy of the list to avoid removing tags from originial
+            for tag in list(tags):
+                for exc_tag in excluding_tags:
+                    if tag.startswith(exc_tag + ":"):
+                        tags.remove(tag)
+
+            cls.histogram(self, metric, value, tags=tags, hostname=hostname,
+                device_name=device_name)
+
+        return fct
+
     def historate(self, metric, value, excluding_tags, tags=None, hostname=None, device_name=None):
         """
         Computes a rate and sample it as a histogram
@@ -457,13 +471,15 @@ class AgentCheck(object):
         :param hostname: (optional) A hostname for this metric. Defaults to the current hostname.
         :param device_name: (optional) The device name for this metric
         """
-        context = set()
+
+        tags = list(tags) # Use a copy of the list to avoid removing tags from originial
+        context = [metric]
         if tags is not None:
-            context = set(sorted(tags))
+            context.append("-".join(sorted(tags)))
         if hostname is not None:
-            context.add("host:" + hostname)
+            context.append("host:" + hostname)
         if device_name is not None:
-            context.add("device:" + device_name)
+            context.append("device:" + device_name)
 
         now = time.time()
         context = tuple(context)

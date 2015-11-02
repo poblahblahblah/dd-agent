@@ -33,6 +33,7 @@ class TestCore(unittest.TestCase):
     def setUpAgentCheck(self):
         self.ac = AgentCheck('test', {}, {'checksd_hostname': "foo"})
 
+
     def test_gauge(self):
         self.assertEquals(self.c.is_gauge("test-metric"), True)
         self.assertEquals(self.c.is_counter("test-metric"), False)

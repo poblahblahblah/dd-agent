@@ -24,6 +24,11 @@ POD_NAME_LABEL = "io.kubernetes.pod.name"
 GAUGE = AgentCheck.gauge
 RATE = AgentCheck.rate
 HISTORATE = AgentCheck.generate_historate_func(["container_name"])
+HISTO = AgentCheck.generate_histogram_func(["container_name"])
+FUNC_MAP = {
+    GAUGE: {True: HISTO, False: GAUGE},
+    RATE: {True: HISTORATE, False: RATE}
+}
 
 CGROUP_METRICS = [
     {
@@ -190,9 +195,6 @@ class DockerDaemon(AgentCheck):
 
             self.use_histogram = _is_affirmative(instance.get('use_histogram', False))
             performance_tags = instance.get("performance_tags", DEFAULT_PERFORMANCE_TAGS)
-            if self.use_histogram:
-                # We don't want to tag by container name
-                performance_tags.remove("container_name")
 
             self.tag_names = {
                 CONTAINER: instance.get("container_tags", DEFAULT_CONTAINER_TAGS),
@@ -449,13 +451,14 @@ class DockerDaemon(AgentCheck):
                 continue
 
             tags = self._get_tags(container, PERFORMANCE)
-
+            m_func = FUNC_MAP[GAUGE][self.use_histogram]
             if "SizeRw" in container:
-                self.gauge('docker.container.size_rw', container['SizeRw'],
+
+                m_func(self, 'docker.container.size_rw', container['SizeRw'],
                     tags=tags)
             if "SizeRootFs" in container:
-                self.gauge(
-                    'docker.container.size_rootfs', container['SizeRootFs'],
+                m_func(
+                    self, 'docker.container.size_rootfs', container['SizeRootFs'],
                     tags=tags)
 
     def _report_image_size(self, images):
@@ -484,9 +487,8 @@ class DockerDaemon(AgentCheck):
                 stats = self._parse_cgroup_file(stat_file)
                 if stats:
                     for key, (dd_key, metric_func) in cgroup['metrics'].iteritems():
+                        metric_func = FUNC_MAP[metric_func][self.use_histogram]
                         if key in stats:
-                            if metric_func == RATE and self.use_histogram:
-                                metric_func = HISTORATE
                             metric_func(self, dd_key, int(stats[key]), tags=tags)
 
                     # Computed metrics
@@ -496,8 +498,7 @@ class DockerDaemon(AgentCheck):
                             self.log.debug("Couldn't compute {0}, some keys were missing.".format(mname))
                             continue
                         value = fct(*values)
-                        if metric_func == RATE and self.use_histogram:
-                            metric_func = HISTORATE
+                        metric_func = FUNC_MAP[metric_func][self.use_histogram]
                         if value is not None:
                             metric_func(self, mname, value, tags=tags)
 
@@ -535,11 +536,11 @@ class DockerDaemon(AgentCheck):
                     if interface_name == 'eth0':
                         x = cols[1].split()
                         if self.use_histogram:
-                            m_func = self.historate
+                            m_func = HISTORATE
                         else:
-                            m_func = self.rate
-                        m_func("docker.net.bytes_rcvd", long(x[0]), tags)
-                        m_func("docker.net.bytes_sent", long(x[8]), tags)
+                            m_func = RATE
+                        m_func(self, "docker.net.bytes_rcvd", long(x[0]), tags)
+                        m_func(self, "docker.net.bytes_sent", long(x[8]), tags)
                         break
         except Exception, e:
             # It is possible that the container got stopped between the API call and now
