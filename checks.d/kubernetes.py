@@ -36,14 +36,19 @@ DEFAULT_ENABLED_GAUGES = [
     'memory.usage',
     'filesystem.usage']
 
-
-
-
-def historate(self, metric, value, tags=None, hostname=None, device_name=None):
-    self.historate(metric, value, ["container_name"], tags=tags, hostname=hostname, device_name=device_name)
+GAUGE = AgentCheck.gauge
+RATE = AgentCheck.rate
+HISTORATE = AgentCheck.generate_historate_func(["container_name"])
+HISTO = AgentCheck.generate_histogram_func(["container_name"])
+FUNC_MAP = {
+    GAUGE: {True: HISTO, False: GAUGE},
+    RATE: {True: HISTORATE, False: RATE}
+}
 
 class Kubernetes(AgentCheck):
     """ Collect metrics and events from kubelet """
+
+    pod_names_by_container = {}
 
     def __init__(self, name, init_config, agentConfig, instances=None):
         if instances is not None and len(instances) > 1:
@@ -126,12 +131,8 @@ class Kubernetes(AgentCheck):
 
         self.publish_aliases = _is_affirmative(instance.get('publish_aliases', DEFAULT_PUBLISH_ALIASES))
         self.use_histogram = _is_affirmative(instance.get('use_histogram', DEFAULT_USE_HISTOGRAM))
-        if self.use_histogram:
-            self.publish_rate = historate
-            self.publish_gauge = AgentCheck.histogram
-        else:
-            self.publish_rate = AgentCheck.rate
-            self.publish_gauge = AgentCheck.gauge
+        self.publish_rate = FUNC_MAP[RATE][self.use_histogram]
+        self.publish_gauge = FUNC_MAP[GAUGE][self.use_histogram]
 
         # master health checks
         if instance.get('enable_master_checks', False):
@@ -185,7 +186,7 @@ class Kubernetes(AgentCheck):
             container_name = subcontainer['aliases'][0]
         else:
             # We default to the container id
-            container_name = self._shorten_name(subcontainer['name'])
+            container_name = subcontainer['name']
 
         tags.append('container_name:%s' % container_name)
 
