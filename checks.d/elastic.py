@@ -427,10 +427,13 @@ class ESCheck(AgentCheck):
             # Override the metric hostname if we're hitting an external cluster
             metric_hostname = node_hostname if cluster_stats else None
 
+            cluster_tags = config.tags
+            if metric_hostname:
+                cluster_tags.append("elastic_hostname:"+metric_hostname)
+
             for metric, desc in stats_metrics.iteritems():
                 self._process_metric(
-                    node_data, metric, *desc, tags=config.tags,
-                    hostname=metric_hostname)
+                    node_data, metric, *desc, tags=cluster_tags)
 
     def _process_pshard_stats_data(self, data, config, pshard_stats_metrics):
         for metric, desc in pshard_stats_metrics.iteritems():
