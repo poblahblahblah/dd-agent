@@ -257,7 +257,7 @@ class TestElastic(AgentCheckTest):
 
                 if desc[0] == "gauge":
                     self.assertMetric(
-                        m_name, tags=m_tags, count=1, hostname=hostname)
+                        m_name, tags=m_tags + ['elasticsearch_host:'+hostname], count=1)
 
         good_sc_tags = ['host:localhost', 'port:{0}'.format(port)]
         bad_sc_tags = ['host:localhost', 'port:{0}'.format(bad_port)]
