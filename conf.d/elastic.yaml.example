@@ -11,6 +11,8 @@ instances:
   # If your cluster is hosted externally (i.e., you're not pointing to localhost)
   # you will need to set `cluster_stats` to true otherwise the check will only
   # submit metrics of the local node.
+  # By enabling this parameter, your cluster metrics will be tagged with:
+  # 'elastic_search:<hostname>' in Datadog.
   # DEPRECATION:
   # This parameter was also called `is_external` and you can still use it but it
   # will be removed in version 6.
