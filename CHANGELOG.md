@@ -1,7 +1,18 @@
 Changes
 =======
 
+# 5.6.1 / Unreleased
+**Windows only**
+
+### Details
+https://github.com/DataDog/dd-agent/compare/5.6.0...5.6.1
+
+### Changes
+* [BUGFIX] Core: Fix subprocess calls on Windows. See [#2056][]
+
 # 5.6.0 / 11-05-2015
+**Linux, Mac OS and Source Install only**
+
 ### Details
 https://github.com/DataDog/dd-agent/compare/5.5.2...5.6.0
 
@@ -2300,6 +2311,7 @@ If you use ganglia, you want this version.
 [#2038]: https://github.com/DataDog/dd-agent/issues/2038
 [#2039]: https://github.com/DataDog/dd-agent/issues/2039
 [#2040]: https://github.com/DataDog/dd-agent/issues/2040
+[#2056]: https://github.com/DataDog/dd-agent/issues/2056
 [@AirbornePorcine]: https://github.com/AirbornePorcine
 [@CaptTofu]: https://github.com/CaptTofu
 [@KnownSubset]: https://github.com/KnownSubset
