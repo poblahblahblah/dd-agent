@@ -8,15 +8,15 @@ from checks import AgentCheck, CheckException
 import psutil
 import redis
 
-Stat = namedtuple("SidekiqStat", "name command key")
+SidekiqStat = namedtuple("SidekiqStat", "name command key")
 
 class Sidekiq(AgentCheck):
     APP_STATS = [
-        Stat('processed', 'get', 'stat:processed'),
-        Stat('failed', 'get', 'stat:failed'),
-        Stat('scheduled', 'zcard', 'schedule'),
-        Stat('retries', 'zcard', 'retry'),
-        Stat('dead', 'zcard', 'dead')
+        SidekiqStat('processed', 'get', 'stat:processed'),
+        SidekiqStat('failed', 'get', 'stat:failed'),
+        SidekiqStat('scheduled', 'zcard', 'schedule'),
+        SidekiqStat('retries', 'zcard', 'retry'),
+        SidekiqStat('dead', 'zcard', 'dead')
     ]
 
     APP_PREFIX = 'sidekiq.app.'
@@ -25,31 +25,31 @@ class Sidekiq(AgentCheck):
         AgentCheck.__init__(self, name, init_config, agentConfig)
         self.connections = {}
 
-    def _procs_by_tag(self):
+    def _procs_by_name(self):
         """
-        Search for running sidekiq processes and group them by app tag
+        Search for running sidekiq processes and group them by app name
         (i.e. `pgrep -fa '^sidekiq' | cut -d' ' -f 4`)
         """
         all_sidekiq_procs = [p for p in psutil.process_iter()
                              if p.name() == 'ruby'
                              and p.cmdline()[0].startswith('sidekiq')]
 
-        sidekiq_procs_by_tag = {}
+        sidekiq_procs_by_name = {}
 
         for sidekiq_proc in all_sidekiq_procs:
             # sidekiq overwrites command line to be e.g.
-            #'sidekiq 2.14.0 myapp [2 of 10 busy]'
+            #'sidekiq 3.5.3 myapp [2 of 10 busy]'
             # see: http://git.io/57ktWQ
             sk_cmdline = sidekiq_proc.cmdline()[0]
-            app_tag = sk_cmdline.split()[2]
+            app_name = sk_cmdline.split()[2]
 
-            # sometimes there is no tag....
-            if re.search(r'^\[\d', app_tag):
-                app_tag = '__none__'
+            # sometimes there is no name....
+            if re.search(r'^\[\d', app_name):
+                app_name = None
 
-            sidekiq_procs_by_tag.setdefault(app_tag, []).append(sidekiq_proc)
+            sidekiq_procs_by_name.setdefault(app_name, []).append(sidekiq_proc)
 
-        return sidekiq_procs_by_tag
+        return sidekiq_procs_by_name
 
     def _namespaced_key(self, namespace, key):
         if not namespace:
@@ -62,20 +62,21 @@ class Sidekiq(AgentCheck):
         Reports stats as defined in Sidekiq::Stats (in http://git.io/e-QGLw ) as
         well as busy (as returned by sidekiq_web /dashboard/stats endpoint)
         """
-        procs_by_tag = self._procs_by_tag()
+        procs_by_name = self._procs_by_name()
 
-        tag = instance.get('tag')
-        if tag == None and len(procs_by_tag.keys()) == 1:
-            tag = procs_by_tag.keys()[0]
+        name = instance.get('name')
+        if name == None and len(procs_by_name.keys()) == 1:
+            name = procs_by_name.keys()[0]
 
         app_tags = []
-        if  tag != '__none__':
-            app_tags.append('sidekiq_app:%s' % tag)
+        if name != None:
+            app_tags.append('sidekiq:%s' % name)
+        app_tags.extend(instance['tags'])
 
-        worker_procs = procs_by_tag.get(tag, [])
+        worker_procs = procs_by_name.get(name, [])
         running_proc = next((p for p in worker_procs if p.is_running()), None)
-        if tag and not running_proc:
-            self.warning("No running sidekiq workers matching tag '%s'" % tag)
+        if name and not running_proc:
+            self.warning("No running sidekiq workers matching name '%s'" % name)
             self.service_check('sidekiq.workers_running',
                                AgentCheck.CRITICAL, tags=app_tags)
         else:
@@ -84,8 +85,6 @@ class Sidekiq(AgentCheck):
 
         redis_url = instance.get('redis_url')
         conn = self.connections.get(redis_url) or redis.from_url(redis_url)
-        self.connections[redis_url] = conn
-
         namespace = instance.get('redis_namespace')
 
         #per-app stats
@@ -102,7 +101,7 @@ class Sidekiq(AgentCheck):
         pipe = conn.pipeline()
         for process in processes:
             pipe.hget(self._namespaced_key(namespace, process), 'busy')
-        busy = sum([int(num) for num in pipe.execute()])
+        busy = sum([int(num) for num in pipe.execute() if num is not None])
 
         self.gauge(self.APP_PREFIX + 'busy', float(busy), tags=app_tags)
 
@@ -119,3 +118,4 @@ class Sidekiq(AgentCheck):
             enqueued += msgs
 
         self.gauge(self.APP_PREFIX + 'enqueued', float(enqueued), tags=app_tags)
+
